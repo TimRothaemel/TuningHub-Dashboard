@@ -6,40 +6,138 @@
   <title>TuningHub Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Behalten Sie Ihre bestehenden Styles bei */
-    body { font-family: sans-serif; background: #f5f5f5; margin: 0; }
-    header { background: #111; color: white; padding: 20px; text-align: center; }
-    .stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 20px; }
-    .card { background: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    .filters { text-align: center; margin-top: 10px; }
-    canvas { max-width: 1000px; margin: 20px auto; background: white; border-radius: 8px; padding: 20px; }
-    .error { color: red; text-align: center; padding: 10px; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: #f5f5f5; 
+      margin: 0; 
+      padding: 0;
+    }
+    header { 
+      background: #1a1a1a; 
+      color: white; 
+      padding: 20px; 
+      text-align: center; 
+      font-size: 24px; 
+      font-weight: bold;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .stats { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px; 
+      margin: 20px 0;
+    }
+    .card { 
+      background: white; 
+      padding: 20px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+      font-size: 16px;
+      transition: transform 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    .card-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 8px;
+      color: #2c3e50;
+    }
+    .filters { 
+      text-align: center; 
+      margin: 20px 0;
+      padding: 15px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+    }
+    .chart-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    .error {
+      color: #e74c3c;
+      text-align: center;
+      padding: 10px;
+      background: #ffebee;
+      border-radius: 6px;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
   <header>TuningHub Dashboard</header>
 
-  <div class="filters">
-    <label for="timeFilter">Zeitraum: </label>
-    <select id="timeFilter">
-      <option value="hour">Letzte Stunde</option>
-      <option value="24h">Letzte 24 Stunden</option>
-      <option value="7d">Letzte 7 Tage</option>
-      <option value="month">Letzter Monat</option>
-      <option value="year">Letztes Jahr</option>
-      <option value="all">Gesamt</option>
-    </select>
+  <div class="container">
+    <div class="filters">
+      <label for="timeFilter">Zeitraum: </label>
+      <select id="timeFilter">
+        <option value="hour">Letzte Stunde</option>
+        <option value="24h">Letzte 24 Stunden</option>
+        <option value="7d" selected>Letzte 7 Tage</option>
+        <option value="month">Letzter Monat</option>
+        <option value="year">Letztes Jahr</option>
+        <option value="all">Gesamt</option>
+      </select>
+    </div>
+
+    <div id="loading" class="loading">Daten werden geladen...</div>
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div class="stats" id="stats" style="display: none;">
+      <div class="card">
+        <div>📈 Pageviews</div>
+        <div class="card-value" id="pageviews">0</div>
+      </div>
+      <div class="card">
+        <div>🔐 Login-Versuche</div>
+        <div class="card-value" id="login_attempts">0</div>
+      </div>
+      <div class="card">
+        <div>⚙️ Hochgeladene Teile</div>
+        <div class="card-value" id="parts">0</div>
+      </div>
+      <div class="card">
+        <div>👤 Aktive Nutzer</div>
+        <div class="card-value" id="active_users">0</div>
+      </div>
+      <div class="card">
+        <div>📅 Events heute</div>
+        <div class="card-value" id="today_events">0</div>
+      </div>
+      <div class="card">
+        <div>💰 Durchschnittspreis</div>
+        <div class="card-value" id="avg_price">0 €</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="eventsChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="partsChart"></canvas>
+    </div>
   </div>
-
-  <div id="error" class="error" style="display: none;"></div>
-
-  <div class="stats" id="stats">
-    <div class="card" id="parts">⚙️ Hochgeladene Teile: </div>
-    <div class="card" id="parts_last_month">📅 Teile (letzter Monat): </div>
-    <div class="card" id="avg_price">💰 Durchschnittspreis: </div>
-  </div>
-
-  <canvas id="chart"></canvas>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
@@ -50,9 +148,13 @@
     )
 
     const timeSelect = document.getElementById('timeFilter')
-    const chartCanvas = document.getElementById('chart')
+    const eventsChartCanvas = document.getElementById('eventsChart')
+    const partsChartCanvas = document.getElementById('partsChart')
+    const loadingElement = document.getElementById('loading')
     const errorElement = document.getElementById('error')
-    let chart
+    const statsElement = document.getElementById('stats')
+    let eventsChart = null
+    let partsChart = null
 
     timeSelect.addEventListener('change', loadData)
     loadData()
@@ -63,68 +165,148 @@
         case 'hour': return new Date(now.getTime() - 60 * 60 * 1000)
         case '24h': return new Date(now.getTime() - 24 * 60 * 60 * 1000)
         case '7d': return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        case 'month': return new Date(now.setMonth(now.getMonth() - 1))
-        case 'year': return new Date(now.setFullYear(now.getFullYear() - 1))
+        case 'month': 
+          const monthAgo = new Date()
+          monthAgo.setMonth(monthAgo.getMonth() - 1)
+          return monthAgo
+        case 'year': 
+          const yearAgo = new Date()
+          yearAgo.setFullYear(yearAgo.getFullYear() - 1)
+          return yearAgo
         default: return null
       }
     }
 
     async function loadData() {
       try {
-        const range = getStartTime(timeSelect.value)
-
-        // Nur die parts Tabelle abfragen
-        const { data: parts, error } = await supabase.from('parts').select('*')
+        loadingElement.style.display = 'block'
+        errorElement.style.display = 'none'
+        statsElement.style.display = 'none'
         
-        if (error) throw error
+        if (eventsChart) eventsChart.destroy()
+        if (partsChart) partsChart.destroy()
 
-        const filteredParts = range ? parts.filter(p => new Date(p.created_at) >= range) : parts
+        const range = getStartTime(timeSelect.value)
+        const todayStart = new Date()
+        todayStart.setHours(0,0,0,0)
 
-        // Monatsdaten berechnen
-        const monthAgo = new Date()
-        monthAgo.setMonth(monthAgo.getMonth() - 1)
-        const partsLastMonth = parts.filter(p => new Date(p.created_at) >= monthAgo)
+        // Parallele Abfragen
+        const [
+          { data: parts, error: partsError },
+          { data: events, error: eventsError }
+        ] = await Promise.all([
+          supabase.from('parts').select('*'),
+          supabase.from('tracking_events').select('*')
+        ])
+
+        if (partsError) throw new Error(`Parts: ${partsError.message}`)
+        if (eventsError) throw new Error(`Tracking Events: ${eventsError.message}`)
+
+        // Daten filtern
+        const filteredParts = range 
+          ? parts.filter(p => new Date(p.created_at) >= range)
+          : parts
+
+        const filteredEvents = range 
+          ? events.filter(e => new Date(e.timestamp) >= range)
+          : events
+
+        const todaysEvents = events.filter(e => new Date(e.timestamp) >= todayStart)
+
+        // Eindeutige Nutzer
+        const activeUsers = new Set(filteredEvents.map(e => e.user_id).filter(Boolean))
 
         // Durchschnittspreis berechnen
         const avgPrice = filteredParts.length > 0 
           ? (filteredParts.reduce((sum, part) => sum + parseFloat(part.price), 0) / filteredParts.length).toFixed(2)
           : 0
 
-        // UI aktualisieren
-        document.getElementById('parts').textContent = `⚙️ Hochgeladene Teile: ${filteredParts.length}`
-        document.getElementById('parts_last_month').textContent = `📅 Teile (letzter Monat): ${partsLastMonth.length}`
-        document.getElementById('avg_price').textContent = `💰 Durchschnittspreis: ${avgPrice} €`
+        // Event-Typen zählen
+        const pageviews = filteredEvents.filter(e => e.event_type === 'pageview').length
+        const loginAttempts = filteredEvents.filter(e => e.event_type === 'login_attempt').length
 
-        // Diagramm mit Parts-Daten erstellen
+        // UI aktualisieren
+        document.getElementById('pageviews').textContent = pageviews
+        document.getElementById('login_attempts').textContent = loginAttempts
+        document.getElementById('parts').textContent = filteredParts.length
+        document.getElementById('active_users').textContent = activeUsers.size
+        document.getElementById('today_events').textContent = todaysEvents.length
+        document.getElementById('avg_price').textContent = `${avgPrice} €`
+
+        // Events-Diagramm
+        const eventCountsByDay = {}
+        filteredEvents.forEach(e => {
+          const d = new Date(e.timestamp).toISOString().slice(0, 10)
+          eventCountsByDay[d] = (eventCountsByDay[d] || 0) + 1
+        })
+
+        const eventLabels = Object.keys(eventCountsByDay).sort()
+        const eventValues = eventLabels.map(l => eventCountsByDay[l])
+
+        eventsChart = new Chart(eventsChartCanvas, {
+          type: 'line',
+          data: {
+            labels: eventLabels,
+            datasets: [{
+              label: 'Events pro Tag',
+              data: eventValues,
+              backgroundColor: 'rgba(52, 152, 219, 0.2)',
+              borderColor: 'rgba(52, 152, 219, 1)',
+              borderWidth: 2,
+              tension: 0.1,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'top' }
+            },
+            scales: { 
+              y: { beginAtZero: true }
+            }
+          }
+        })
+
+        // Parts-Diagramm
         const partsByDay = {}
         filteredParts.forEach(p => {
           const d = new Date(p.created_at).toISOString().slice(0, 10)
           partsByDay[d] = (partsByDay[d] || 0) + 1
         })
 
-        const labels = Object.keys(partsByDay).sort()
-        const values = labels.map(l => partsByDay[l])
+        const partsLabels = Object.keys(partsByDay).sort()
+        const partsValues = partsLabels.map(l => partsByDay[l])
 
-        if (chart) chart.destroy()
-        chart = new Chart(chartCanvas, {
+        partsChart = new Chart(partsChartCanvas, {
           type: 'bar',
           data: {
-            labels: labels,
-            datasets: [{ 
-              label: 'Hochgeladene Teile pro Tag', 
-              data: values, 
-              backgroundColor: '#1abc9c' 
+            labels: partsLabels,
+            datasets: [{
+              label: 'Hochgeladene Teile pro Tag',
+              data: partsValues,
+              backgroundColor: 'rgba(46, 204, 113, 0.7)',
+              borderColor: 'rgba(39, 174, 96, 1)',
+              borderWidth: 1
             }]
           },
           options: {
             responsive: true,
-            scales: { y: { beginAtZero: true } }
+            plugins: {
+              legend: { position: 'top' }
+            },
+            scales: { 
+              y: { beginAtZero: true }
+            }
           }
         })
 
-        errorElement.style.display = 'none'
+        loadingElement.style.display = 'none'
+        statsElement.style.display = 'grid'
+
       } catch (error) {
         console.error('Fehler:', error)
+        loadingElement.style.display = 'none'
         errorElement.style.display = 'block'
         errorElement.textContent = `Fehler: ${error.message}`
       }
