@@ -1,101 +1,130 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TuningHub Dashboard</title>
-    <link rel="stylesheet" href="dashboard.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TuningHub Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f5f5f5; margin: 0; }
+    header { background: #111; color: white; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; }
+    .stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 20px; }
+    .card { background: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); font-size: 18px; }
+    .filters { text-align: center; margin-top: 10px; }
+    canvas { max-width: 1000px; margin: 20px auto; display: block; background: white; border-radius: 8px; padding: 20px; }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>TuningHub Dashboard</h1>
-    </header>
+  <header>TuningHub Dashboard</header>
 
-    <main>
-        <section class="stats">
-            <div class="card" id="pageviews">📈 Pageviews: <span>0</span></div>
-            <div class="card" id="login-attempts">🔐 Login-Versuche: <span>0</span></div>
-            <div class="card" id="login-errors">❌ Login-Fehler: <span>0</span></div>
-            <div class="card" id="email-not-confirmed">📧 Nicht bestätigte E-Mails: <span>0</span></div>
-            <div class="card" id="uploaded-parts">⚙️ Hochgeladene Teile: <span>0</span></div>
-            <div class="card" id="registered-users">👤 Registrierte Nutzer: <span>0</span></div>
-        </section>
+  <div class="filters">
+    <label for="timeFilter">Zeitraum: </label>
+    <select id="timeFilter">
+      <option value="hour">Letzte Stunde</option>
+      <option value="24h">Letzte 24 Stunden</option>
+      <option value="7d">Letzte 7 Tage</option>
+      <option value="month">Letzter Monat</option>
+      <option value="year">Letztes Jahr</option>
+      <option value="all">Gesamt</option>
+    </select>
+  </div>
 
-        <section class="chart-container">
-            <canvas id="eventChart"></canvas>
-        </section>
-    </main>
+  <div class="stats" id="stats">
+    <div class="card" id="pageviews">📈 Pageviews: </div>
+    <div class="card" id="login_attempts">🔐 Login-Versuche: </div>
+    <div class="card" id="login_errors">❌ Login-Fehler: </div>
+    <div class="card" id="unconfirmed">📧 Nicht bestätigte E-Mails: </div>
+    <div class="card" id="parts">⚙️ Hochgeladene Teile: </div>
+    <div class="card" id="users">👤 Registrierte Nutzer: </div>
+  </div>
 
-    <script>
-        const supabase = window.supabase.createClient(
-            'https://lhxcnrogjjskgaclqxtm.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoeGNucm9nampza2dhY2xxeHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MjU0MzUsImV4cCI6MjA2ODEwMTQzNX0.vOr_Esi9IIesFixkkvYQjYEqghrKCMeqbrPKW27zqww'
-        );
+  <canvas id="chart"></canvas>
 
-        async function loadDashboardData() {
-            const eventTypes = [
-                'pageview',
-                'login_attempt',
-                'login_error',
-                'login_email_not_confirmed'
-            ];
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-            const counts = {};
-            for (let type of eventTypes) {
-                const { count } = await supabase
-                    .from('tracking_events')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('event_type', type);
-                counts[type] = count;
-            }
+    const tracking = createClient(
+      'https://lhxcnrogjjskgaclqxtm.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoeGNucm9nampza2dhY2xxeHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MjU0MzUsImV4cCI6MjA2ODEwMTQzNX0.vOr_Esi9IIesFixkkvYQjYEqghrKCMeqbrPKW27zqww'
+    )
+    const supabase = createClient(
+      'https://yvdptnkmgfxkrszitweo.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2ZHB0bmttZ2Z4a3Jzeml0d2VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MDAwMzQsImV4cCI6MjA2NjI3NjAzNH0.Kd6D6IQ_stUMrcbm2TN-7ACjFJvXNmkeNehQHavTmJo'
+    )
 
-            const { count: partsCount } = await supabase
-                .from('teile')
-                .select('*', { count: 'exact', head: true });
+    const timeSelect = document.getElementById('timeFilter')
+    const chartCanvas = document.getElementById('chart')
+    let chart
 
-            const { count: userCount } = await supabase
-                .from('users')
-                .select('*', { count: 'exact', head: true });
+    timeSelect.addEventListener('change', loadData)
+    loadData()
 
-            document.querySelector('#pageviews span').textContent = counts.pageview;
-            document.querySelector('#login-attempts span').textContent = counts.login_attempt;
-            document.querySelector('#login-errors span').textContent = counts.login_error;
-            document.querySelector('#email-not-confirmed span').textContent = counts.login_email_not_confirmed;
-            document.querySelector('#uploaded-parts span').textContent = partsCount;
-            document.querySelector('#registered-users span').textContent = userCount;
+    function getStartTime(filter) {
+      const now = new Date()
+      switch (filter) {
+        case 'hour': return new Date(now.getTime() - 60 * 60 * 1000)
+        case '24h': return new Date(now.getTime() - 24 * 60 * 60 * 1000)
+        case '7d': return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        case 'month': return new Date(now.setMonth(now.getMonth() - 1))
+        case 'year': return new Date(now.setFullYear(now.getFullYear() - 1))
+        default: return null
+      }
+    }
 
-            // Chart
-            const ctx = document.getElementById('eventChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Pageviews', 'Login-Versuche', 'Login-Fehler', 'Nicht bestätigte E-Mails'],
-                    datasets: [{
-                        label: 'Events',
-                        data: [counts.pageview, counts.login_attempt, counts.login_error, counts.login_email_not_confirmed],
-                        backgroundColor: ['#4CAF50', '#2196F3', '#f44336', '#FF9800']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
+    async function loadData() {
+      const range = getStartTime(timeSelect.value)
+
+      const { data: events } = await tracking.from('tracking_events')
+        .select('*')
+        .then(({ data }) => {
+          return range ? data.filter(e => new Date(e.timestamp) >= range) : data
+        })
+
+      const counts = {
+        pageview: 0,
+        login_attempt: 0,
+        login_error: 0,
+        login_email_not_confirmed: 0
+      }
+      for (let e of events) {
+        if (counts[e.event_type] !== undefined) counts[e.event_type]++
+      }
+
+      const { data: parts } = await supabase.from('parts').select('*')
+      const filteredParts = range ? parts.filter(p => new Date(p.created_at) >= range) : parts
+
+      const { data: users } = await supabase.from('users').select('*')
+      const filteredUsers = range ? users.filter(u => new Date(u.created_at) >= range) : users
+
+      document.getElementById('pageviews').textContent = `📈 Pageviews: ${counts.pageview}`
+      document.getElementById('login_attempts').textContent = `🔐 Login-Versuche: ${counts.login_attempt}`
+      document.getElementById('login_errors').textContent = `❌ Login-Fehler: ${counts.login_error}`
+      document.getElementById('unconfirmed').textContent = `📧 Nicht bestätigte E-Mails: ${counts.login_email_not_confirmed}`
+      document.getElementById('parts').textContent = `⚙️ Hochgeladene Teile: ${filteredParts.length}`
+      document.getElementById('users').textContent = `👤 Registrierte Nutzer: ${filteredUsers.length}`
+
+      const eventCountsByDay = {}
+      for (let e of events) {
+        const d = new Date(e.timestamp).toISOString().slice(0, 10)
+        eventCountsByDay[d] = (eventCountsByDay[d] || 0) + 1
+      }
+
+      const labels = Object.keys(eventCountsByDay).sort()
+      const values = labels.map(l => eventCountsByDay[l])
+
+      if (chart) chart.destroy()
+      chart = new Chart(chartCanvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Events', data: values, backgroundColor: '#1abc9c' }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
         }
-
-        loadDashboardData();
-    </script>
-
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
-        header { background: #111; color: white; padding: 1rem; text-align: center; }
-        .stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin: 1rem; }
-        .card { background: white; border-radius: 12px; padding: 1rem 2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 1.2rem; }
-        .chart-container { padding: 2rem; }
-    </style>
+      })
+    }
+  </script>
 </body>
 </html>
