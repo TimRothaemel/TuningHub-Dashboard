@@ -110,24 +110,16 @@
         <div class="card-value" id="pageviews">0</div>
       </div>
       <div class="card">
-        <div>🔐 Login-Versuche</div>
-        <div class="card-value" id="login_attempts">0</div>
-      </div>
-      <div class="card">
-        <div>❌ Login-Fehler</div>
-        <div class="card-value" id="login_errors">0</div>
-      </div>
-      <div class="card">
-        <div>📧 Nicht bestätigte E-Mails</div>
-        <div class="card-value" id="unconfirmed">0</div>
-      </div>
-      <div class="card">
         <div>⚙️ Hochgeladene Teile</div>
         <div class="card-value" id="parts">0</div>
       </div>
       <div class="card">
-        <div>👤 Registrierte Nutzer</div>
-        <div class="card-value" id="users">0</div>
+        <div>📊 Gesamt-Events</div>
+        <div class="card-value" id="total_events">0</div>
+      </div>
+      <div class="card">
+        <div>👤 Eindeutige Nutzer</div>
+        <div class="card-value" id="unique_users">0</div>
       </div>
     </div>
 
@@ -139,7 +131,6 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-    // Single Supabase client instance
     const supabase = createClient(
       'https://yvdptnkmgfxkrszitweo.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2ZHB0bmttZ2Z4a3Jzeml0d2VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MDAwMzQsImV4cCI6MjA2NjI3NjAzNH0.Kd6D6IQ_stUMrcbm2TN-7ACjFJvXNmkeNehQHavTmJo'
@@ -175,7 +166,6 @@
 
     async function loadData() {
       try {
-        // Show loading state
         loadingElement.style.display = 'block'
         errorElement.style.display = 'none'
         statsElement.style.display = 'none'
@@ -183,52 +173,40 @@
 
         const range = getStartTime(timeSelect.value)
 
-        // Fetch all data in parallel
+        // Nur die Tabellen abfragen, die existieren (parts und tracking_events)
         const [
-          { data: events, error: eventsError },
           { data: parts, error: partsError },
-          { data: users, error: usersError }
+          { data: events, error: eventsError }
         ] = await Promise.all([
-          supabase.from('tracking_events').select('*'),
           supabase.from('parts').select('*'),
-          supabase.from('users').select('*')
+          supabase.from('tracking_events').select('*')
         ])
 
-        // Check for errors
-        if (eventsError) throw new Error(`Tracking Events: ${eventsError.message}`)
         if (partsError) throw new Error(`Parts: ${partsError.message}`)
-        if (usersError) throw new Error(`Users: ${usersError.message}`)
+        if (eventsError) throw new Error(`Tracking Events: ${eventsError.message}`)
 
-        // Filter data based on time range
-        const filteredEvents = range 
-          ? events.filter(e => new Date(e.timestamp) >= range)
-          : events
-
+        // Daten filtern
         const filteredParts = range 
           ? parts.filter(p => new Date(p.created_at) >= range)
           : parts
 
-        const filteredUsers = range 
-          ? users.filter(u => new Date(u.created_at) >= range)
-          : users
+        const filteredEvents = range 
+          ? events.filter(e => new Date(e.timestamp) >= range)
+          : events
 
-        // Calculate counts
-        const counts = {
-          pageview: filteredEvents.filter(e => e.event_type === 'pageview').length,
-          login_attempt: filteredEvents.filter(e => e.event_type === 'login_attempt').length,
-          login_error: filteredEvents.filter(e => e.event_type === 'login_error').length,
-          login_email_not_confirmed: filteredEvents.filter(e => e.event_type === 'login_email_not_confirmed').length
-        }
+        // Eindeutige Nutzer zählen
+        const uniqueUserIds = new Set(filteredEvents.map(e => e.user_id).filter(id => id))
 
-        // Update UI
-        document.getElementById('pageviews').textContent = counts.pageview
-        document.getElementById('login_attempts').textContent = counts.login_attempt
-        document.getElementById('login_errors').textContent = counts.login_error
-        document.getElementById('unconfirmed').textContent = counts.login_email_not_confirmed
+        // UI aktualisieren
         document.getElementById('parts').textContent = filteredParts.length
-        document.getElementById('users').textContent = filteredUsers.length
+        document.getElementById('total_events').textContent = filteredEvents.length
+        document.getElementById('unique_users').textContent = uniqueUserIds.size
+        
+        // Pageviews sind Events vom Typ 'pageview'
+        const pageviews = filteredEvents.filter(e => e.event_type === 'pageview').length
+        document.getElementById('pageviews').textContent = pageviews
 
-        // Prepare chart data
+        // Diagramm vorbereiten
         const eventCountsByDay = {}
         filteredEvents.forEach(e => {
           const d = new Date(e.timestamp).toISOString().slice(0, 10)
@@ -238,7 +216,6 @@
         const labels = Object.keys(eventCountsByDay).sort()
         const values = labels.map(l => eventCountsByDay[l])
 
-        // Create chart
         chart = new Chart(chartCanvas, {
           type: 'bar',
           data: {
@@ -256,36 +233,25 @@
             plugins: {
               legend: {
                 position: 'top',
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false
               }
             },
             scales: { 
               y: { 
                 beginAtZero: true,
-                title: {
-                  display: true,
-                  text: 'Anzahl Events'
-                }
+                title: { display: true, text: 'Anzahl Events' }
               },
               x: {
-                title: {
-                  display: true,
-                  text: 'Datum'
-                }
+                title: { display: true, text: 'Datum' }
               }
             }
           }
         })
 
-        // Hide loading and show data
         loadingElement.style.display = 'none'
         statsElement.style.display = 'grid'
 
       } catch (error) {
-        console.error('Fehler beim Laden der Daten:', error)
+        console.error('Fehler:', error)
         loadingElement.style.display = 'none'
         errorElement.style.display = 'block'
         errorElement.textContent = `Fehler: ${error.message}`
