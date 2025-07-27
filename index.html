@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuningHub Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header>
+        <h1>TuningHub Dashboard</h1>
+    </header>
+
+    <main>
+        <section class="stats">
+            <div class="card" id="pageviews">📈 Pageviews: <span>0</span></div>
+            <div class="card" id="login-attempts">🔐 Login-Versuche: <span>0</span></div>
+            <div class="card" id="login-errors">❌ Login-Fehler: <span>0</span></div>
+            <div class="card" id="email-not-confirmed">📧 Nicht bestätigte E-Mails: <span>0</span></div>
+            <div class="card" id="uploaded-parts">⚙️ Hochgeladene Teile: <span>0</span></div>
+            <div class="card" id="registered-users">👤 Registrierte Nutzer: <span>0</span></div>
+        </section>
+
+        <section class="chart-container">
+            <canvas id="eventChart"></canvas>
+        </section>
+    </main>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://lhxcnrogjjskgaclqxtm.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoeGNucm9nampza2dhY2xxeHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1MjU0MzUsImV4cCI6MjA2ODEwMTQzNX0.vOr_Esi9IIesFixkkvYQjYEqghrKCMeqbrPKW27zqww'
+        );
+
+        async function loadDashboardData() {
+            const eventTypes = [
+                'pageview',
+                'login_attempt',
+                'login_error',
+                'login_email_not_confirmed'
+            ];
+
+            const counts = {};
+            for (let type of eventTypes) {
+                const { count } = await supabase
+                    .from('tracking_events')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('event_type', type);
+                counts[type] = count;
+            }
+
+            const { count: partsCount } = await supabase
+                .from('teile')
+                .select('*', { count: 'exact', head: true });
+
+            const { count: userCount } = await supabase
+                .from('users')
+                .select('*', { count: 'exact', head: true });
+
+            document.querySelector('#pageviews span').textContent = counts.pageview;
+            document.querySelector('#login-attempts span').textContent = counts.login_attempt;
+            document.querySelector('#login-errors span').textContent = counts.login_error;
+            document.querySelector('#email-not-confirmed span').textContent = counts.login_email_not_confirmed;
+            document.querySelector('#uploaded-parts span').textContent = partsCount;
+            document.querySelector('#registered-users span').textContent = userCount;
+
+            // Chart
+            const ctx = document.getElementById('eventChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Pageviews', 'Login-Versuche', 'Login-Fehler', 'Nicht bestätigte E-Mails'],
+                    datasets: [{
+                        label: 'Events',
+                        data: [counts.pageview, counts.login_attempt, counts.login_error, counts.login_email_not_confirmed],
+                        backgroundColor: ['#4CAF50', '#2196F3', '#f44336', '#FF9800']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        loadDashboardData();
+    </script>
+
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
+        header { background: #111; color: white; padding: 1rem; text-align: center; }
+        .stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin: 1rem; }
+        .card { background: white; border-radius: 12px; padding: 1rem 2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 1.2rem; }
+        .chart-container { padding: 2rem; }
+    </style>
+</body>
+</html>
